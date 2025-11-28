@@ -2,6 +2,7 @@ import { ExtendedTool, ToolHandlers } from '../../utils/types'
 import { v2 } from '@datadog/datadog-api-client'
 import { createToolSchema } from '../../utils/tool'
 import { GetLogsZodSchema, GetAllServicesZodSchema } from './schema'
+import { parseDatetime } from '../../utils/datetime-parser'
 
 type LogsToolName = 'get_logs' | 'get_all_services'
 type LogsTool = ExtendedTool<LogsToolName>
@@ -29,13 +30,17 @@ export const createLogsToolHandlers = (
       request.params.arguments,
     )
 
+    // Parse datetime inputs to epoch seconds
+    const fromEpoch = parseDatetime(from)
+    const toEpoch = parseDatetime(to)
+
     const response = await apiInstance.listLogs({
       body: {
         filter: {
           query,
-          // `from` and `to` are in epoch seconds, but the Datadog API expects milliseconds
-          from: `${from * 1000}`,
-          to: `${to * 1000}`,
+          // Datadog API expects milliseconds
+          from: `${fromEpoch * 1000}`,
+          to: `${toEpoch * 1000}`,
         },
         page: {
           limit,
@@ -63,13 +68,17 @@ export const createLogsToolHandlers = (
       request.params.arguments,
     )
 
+    // Parse datetime inputs to epoch seconds
+    const fromEpoch = parseDatetime(from)
+    const toEpoch = parseDatetime(to)
+
     const response = await apiInstance.listLogs({
       body: {
         filter: {
           query,
-          // `from` and `to` are in epoch seconds, but the Datadog API expects milliseconds
-          from: `${from * 1000}`,
-          to: `${to * 1000}`,
+          // Datadog API expects milliseconds
+          from: `${fromEpoch * 1000}`,
+          to: `${toEpoch * 1000}`,
         },
         page: {
           limit,
