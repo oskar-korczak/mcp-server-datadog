@@ -24,7 +24,7 @@
   },
   "scripts": {
     "build": "tsup &&  node -e \"require('fs').chmodSync('build/index.js', '755')\"",
-    "prepare": "husky",
+    "prepare": "husky || true && npm run build",
     "watch": "tsup --watch",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
     "lint": "eslint . --ext .ts,.js --fix",
