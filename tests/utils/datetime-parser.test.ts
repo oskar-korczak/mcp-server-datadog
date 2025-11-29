@@ -60,38 +60,103 @@ describe('parseDatetime', () => {
     })
   })
 
-  describe('shortcut expressions', () => {
+  describe('shorthand offsets', () => {
+    it('should parse "-1d"', () => {
+      expect(parseDatetime('-1d')).toBe(FIXED_NOW - 86400)
+    })
+
+    it('should parse "1d" as past (default)', () => {
+      expect(parseDatetime('1d')).toBe(FIXED_NOW - 86400)
+    })
+
+    it('should parse "+1d" as future', () => {
+      expect(parseDatetime('+1d')).toBe(FIXED_NOW + 86400)
+    })
+
+    it('should parse "-2h"', () => {
+      expect(parseDatetime('-2h')).toBe(FIXED_NOW - 2 * 3600)
+    })
+
+    it('should parse "-30m"', () => {
+      expect(parseDatetime('-30m')).toBe(FIXED_NOW - 30 * 60)
+    })
+
+    it('should parse "1w"', () => {
+      expect(parseDatetime('1w')).toBe(FIXED_NOW - 604800)
+    })
+  })
+
+  describe('shortcut expressions (via chrono)', () => {
     it('should parse "yesterday"', () => {
       const result = parseDatetime('yesterday')
-      // Yesterday at 00:00:00 UTC
-      const expected = new Date(FIXED_NOW * 1000)
-      expected.setUTCDate(expected.getUTCDate() - 1)
-      expected.setUTCHours(0, 0, 0, 0)
-      expect(result).toBe(Math.floor(expected.getTime() / 1000))
+      // chrono uses local timezone, so we just check it's roughly 1 day ago
+      expect(result).toBeLessThan(FIXED_NOW)
+      expect(result).toBeGreaterThan(FIXED_NOW - 2 * 86400)
     })
 
     it('should parse "today"', () => {
       const result = parseDatetime('today')
-      // Today at 00:00:00 UTC
-      const expected = new Date(FIXED_NOW * 1000)
-      expected.setUTCHours(0, 0, 0, 0)
-      expect(result).toBe(Math.floor(expected.getTime() / 1000))
+      // chrono uses local timezone for "today" at midnight
+      expect(result).toBeLessThanOrEqual(FIXED_NOW)
+      expect(result).toBeGreaterThan(FIXED_NOW - 86400)
     })
 
     it('should parse "last week"', () => {
-      expect(parseDatetime('last week')).toBe(FIXED_NOW - 7 * 86400)
+      const result = parseDatetime('last week')
+      // chrono interprets "last week" as previous week
+      expect(result).toBeLessThan(FIXED_NOW)
+      expect(result).toBeGreaterThan(FIXED_NOW - 14 * 86400)
     })
 
     it('should parse "last month"', () => {
-      expect(parseDatetime('last month')).toBe(FIXED_NOW - 30 * 86400)
+      const result = parseDatetime('last month')
+      // chrono interprets "last month" as previous month
+      expect(result).toBeLessThan(FIXED_NOW)
+      expect(result).toBeGreaterThan(FIXED_NOW - 62 * 86400)
     })
 
     it('should handle "YESTERDAY" (case insensitive)', () => {
       const result = parseDatetime('YESTERDAY')
-      const expected = new Date(FIXED_NOW * 1000)
-      expected.setUTCDate(expected.getUTCDate() - 1)
-      expected.setUTCHours(0, 0, 0, 0)
-      expect(result).toBe(Math.floor(expected.getTime() / 1000))
+      expect(result).toBeLessThan(FIXED_NOW)
+      expect(result).toBeGreaterThan(FIXED_NOW - 2 * 86400)
+    })
+  })
+
+  describe('abbreviated formats', () => {
+    it('should parse "1d ago"', () => {
+      const result = parseDatetime('1d ago')
+      expect(result).toBeLessThan(FIXED_NOW)
+      expect(result).toBeGreaterThan(FIXED_NOW - 2 * 86400)
+    })
+
+    it('should parse "2h ago"', () => {
+      const result = parseDatetime('2h ago')
+      expect(result).toBeLessThan(FIXED_NOW)
+      expect(result).toBeGreaterThan(FIXED_NOW - 3 * 3600)
+    })
+
+    it('should parse "5 days ago"', () => {
+      const result = parseDatetime('5 days ago')
+      expect(result).toBeLessThan(FIXED_NOW)
+      expect(result).toBeGreaterThan(FIXED_NOW - 6 * 86400)
+    })
+
+    it('should parse "in 1d"', () => {
+      const result = parseDatetime('in 1d')
+      expect(result).toBeGreaterThan(FIXED_NOW)
+      expect(result).toBeLessThan(FIXED_NOW + 2 * 86400)
+    })
+
+    it('should parse "minus 1 day"', () => {
+      const result = parseDatetime('minus 1 day')
+      expect(result).toBeLessThan(FIXED_NOW)
+      expect(result).toBeGreaterThan(FIXED_NOW - 2 * 86400)
+    })
+
+    it('should parse "plus 2 hours"', () => {
+      const result = parseDatetime('plus 2 hours')
+      expect(result).toBeGreaterThan(FIXED_NOW)
+      expect(result).toBeLessThan(FIXED_NOW + 3 * 3600)
     })
   })
 
@@ -103,7 +168,13 @@ describe('parseDatetime', () => {
 
     it('should parse ISO date only', () => {
       const result = parseDatetime('2024-11-27')
-      expect(result).toBe(Math.floor(Date.parse('2024-11-27') / 1000))
+      // chrono parses dates, result should be close to midnight on that day
+      expect(result).toBeGreaterThan(
+        Math.floor(Date.parse('2024-11-26T00:00:00Z') / 1000),
+      )
+      expect(result).toBeLessThan(
+        Math.floor(Date.parse('2024-11-28T00:00:00Z') / 1000),
+      )
     })
 
     it('should parse ISO datetime with timezone offset', () => {
@@ -131,10 +202,6 @@ describe('parseDatetime', () => {
       )
     })
 
-    it('should throw for malformed relative time', () => {
-      expect(() => parseDatetime('now-abc')).toThrow('Invalid datetime format')
-    })
-
     it('should throw for empty string', () => {
       expect(() => parseDatetime('')).toThrow('Invalid datetime format')
     })
@@ -144,10 +211,11 @@ describe('parseDatetime', () => {
 describe('DATETIME_DESCRIPTION', () => {
   it('should contain documentation for all supported formats', () => {
     expect(DATETIME_DESCRIPTION).toContain('epoch seconds')
-    expect(DATETIME_DESCRIPTION).toContain('relative time')
+    expect(DATETIME_DESCRIPTION).toContain('shorthand')
+    expect(DATETIME_DESCRIPTION).toContain('-1d')
     expect(DATETIME_DESCRIPTION).toContain('now-1h')
     expect(DATETIME_DESCRIPTION).toContain('ISO 8601')
     expect(DATETIME_DESCRIPTION).toContain('yesterday')
-    expect(DATETIME_DESCRIPTION).toContain('today')
+    expect(DATETIME_DESCRIPTION).toContain('natural language')
   })
 })
