@@ -11,7 +11,7 @@ export const LOGS_TOOLS: LogsTool[] = [
   createToolSchema(
     GetLogsZodSchema,
     'get_logs',
-    'Search and retrieve logs from Datadog',
+    '[v1.8.1] Search and retrieve logs from Datadog',
   ),
   createToolSchema(
     GetAllServicesZodSchema,
