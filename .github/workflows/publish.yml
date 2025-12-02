@@ -35,4 +35,5 @@ jobs:
       - name: Publish
         # Use npm publish for OIDC support (pnpm doesn't support it yet)
         # No NPM_TOKEN needed - uses OIDC trusted publishing
-        run: npm publish --access public
+        # --provenance is required for OIDC authentication
+        run: npm publish --access public --provenance
