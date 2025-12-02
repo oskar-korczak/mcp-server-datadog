@@ -23,6 +23,9 @@ jobs:
 
       - uses: pnpm/action-setup@v4
 
+      - name: Update npm for OIDC support
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -35,5 +38,5 @@ jobs:
       - name: Publish
         # Use npm publish for OIDC support (pnpm doesn't support it yet)
         # No NPM_TOKEN needed - uses OIDC trusted publishing
-        # --provenance is required for OIDC authentication
-        run: npm publish --access public --provenance
+        # Provenance is automatically generated with trusted publishing
+        run: npm publish --access public
